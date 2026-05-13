@@ -168,25 +168,26 @@ function DigitInputs({value,onChange,disabled}){
   const refs=[useRef(),useRef(),useRef(),useRef()];
   const digits=value.split('').concat(['','','','']).slice(0,4);
   function handleKey(i,e){
-    if(e.key>='0'&&e.key<='9'){
-      const nv=digits.map((d,j)=>j===i?e.key:d).join('').slice(0,4);
-      onChange(nv);e.preventDefault();
-      if(i<3)refs[i+1].current?.focus();
-    }else if(e.key==='Backspace'){
-      const nv=digits.map((d,j)=>j===i?'':d).join('');
-      onChange(nv);e.preventDefault();
-      if(i>0)refs[i-1].current?.focus();
-    }else if(e.key==='ArrowLeft'&&i>0){refs[i-1].current?.focus()}
-    else if(e.key==='ArrowRight'&&i<3){refs[i+1].current?.focus()}
-  }
+  const digit = e.key || e.data;
+  if(digit>='0'&&digit<='9'){
+    const nv=digits.map((d,j)=>j===i?digit:d).join('').slice(0,4);
+    onChange(nv); if(e.preventDefault) e.preventDefault();
+    if(i<3) refs[i+1].current?.focus();
+  }else if(e.key==='Backspace'||digit==='Backspace'){
+    const nv=digits.map((d,j)=>j===i?'':d).join('');
+    onChange(nv); if(e.preventDefault) e.preventDefault();
+    if(i>0) refs[i-1].current?.focus();
+  }else if(e.key==='ArrowLeft'&&i>0){refs[i-1].current?.focus()}
+  else if(e.key==='ArrowRight'&&i<3){refs[i+1].current?.focus()}
+}
   return React.createElement('div',{className:'digit-input-wrap'},
     [0,1,2,3].map(i=>
       React.createElement('input',{
         key:i,ref:refs[i],type:'text',inputMode:'numeric',maxLength:1,
         className:'digit-box',value:digits[i],disabled,
-        readOnly:true,
+        
         onKeyDown:e=>handleKey(i,e),
-        onChange:()=>{},
+        onChange:e=>{ const v=e.target.value.replace(/\D/g,''); if(v) handleKey(i,{key:v,preventDefault:()=>{}}); },
         onClick:()=>refs[i].current?.select(),
         autoFocus:i===0
       })
@@ -659,11 +660,11 @@ function JoinRoomPanel({onJoin}){
   const [code,setCode]=useState('');
   return React.createElement('div',{className:'room-wrap'},
     React.createElement('input',{
-      className:'room-input',type:'text',maxLength:4,
-      placeholder:'ROOM CODE',value:code,
-      onChange:e=>setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g,'')),
-      onKeyDown:e=>{if(e.key==='Enter')onJoin(code)}
-    }),
+  className:'room-input', type:'text', inputMode:'text', autoCapitalize:'characters', maxLength:4,
+  placeholder:'ROOM CODE', value:code,
+  onChange:e=>setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g,'')),
+  onKeyDown:e=>{if(e.key==='Enter')onJoin(code)}
+}),
     React.createElement('button',{
       className:'btn',
       style:{width:'100%',justifyContent:'center'},
