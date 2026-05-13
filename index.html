@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DigitDuel — 4-Digit Guessing Game</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0a0f;--bg2:#12121a;--bg3:#1a1a26;--bg4:#22222f;
+  --accent:#e8ff47;--accent2:#ff6b47;--accent3:#47c8ff;
+  --text:#f0f0f8;--text2:#9090a8;--text3:#5a5a72;
+  --border:#2a2a3a;--border2:#3a3a4a;
+  --green:#47ff8a;--red:#ff4747;
+  --r:8px;--r2:12px;--r3:16px
+}
+body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+#root{min-height:100vh}
+.mono{font-family:'JetBrains Mono',monospace}
+.screen{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px}
+.bg-grid{position:fixed;inset:0;pointer-events:none;opacity:.04;background-image:linear-gradient(var(--accent) 1px,transparent 1px),linear-gradient(90deg,var(--accent) 1px,transparent 1px);background-size:40px 40px;z-index:0}
+.content{position:relative;z-index:1;width:100%;max-width:900px}
+.splash-title{font-size:clamp(48px,8vw,96px);font-weight:800;letter-spacing:-3px;line-height:.9;margin-bottom:8px}
+.splash-title .accent{color:var(--accent)}
+.splash-sub{font-family:'JetBrains Mono',monospace;font-size:14px;color:var(--text2);letter-spacing:2px;text-transform:uppercase;margin-bottom:48px}
+.mode-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;width:100%;max-width:520px}
+.mode-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r3);padding:32px 24px;cursor:pointer;transition:all .2s;text-align:left;position:relative;overflow:hidden}
+.mode-card:hover{border-color:var(--accent);transform:translateY(-2px)}
+.mode-card::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(232,255,71,0.03),transparent 60%);opacity:0;transition:.2s}
+.mode-card:hover::before{opacity:1}
+.mode-icon{font-size:32px;margin-bottom:16px}
+.mode-name{font-size:20px;font-weight:700;margin-bottom:8px}
+.mode-desc{font-size:13px;color:var(--text2);line-height:1.5}
+.mode-badge{display:inline-block;background:var(--bg4);border:1px solid var(--border2);border-radius:4px;font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--text3);padding:2px 8px;margin-top:12px;letter-spacing:1px;text-transform:uppercase}
+.btn{display:inline-flex;align-items:center;gap:8px;background:var(--accent);color:#0a0a0f;border:none;border-radius:var(--r);padding:14px 28px;font-family:'Syne',sans-serif;font-size:15px;font-weight:700;cursor:pointer;transition:all .15s;letter-spacing:.5px}
+.btn:hover{background:#d4e83d;transform:translateY(-1px)}
+.btn:active{transform:scale(.98)}
+.btn.outline{background:transparent;color:var(--text2);border:1px solid var(--border2)}
+.btn.outline:hover{border-color:var(--text);color:var(--text);background:transparent}
+.btn.danger{background:var(--red);color:#fff}
+.btn.sm{padding:8px 16px;font-size:13px}
+.btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+.setup-wrap{width:100%;max-width:480px}
+.setup-title{font-size:28px;font-weight:800;margin-bottom:4px}
+.setup-step{font-size:12px;font-family:'JetBrains Mono',monospace;color:var(--accent);letter-spacing:2px;text-transform:uppercase;margin-bottom:24px}
+.field-label{font-size:12px;color:var(--text2);letter-spacing:1.5px;text-transform:uppercase;font-family:'JetBrains Mono',monospace;margin-bottom:8px}
+.digit-input-wrap{display:flex;gap:10px;margin-bottom:8px}
+.digit-box{width:64px;height:72px;background:var(--bg2);border:2px solid var(--border);border-radius:var(--r2);font-family:'JetBrains Mono',monospace;font-size:32px;font-weight:700;text-align:center;color:var(--text);transition:border-color .15s;-moz-appearance:textfield}
+.digit-box:focus{outline:none;border-color:var(--accent)}
+.digit-box::-webkit-outer-spin-button,.digit-box::-webkit-inner-spin-button{-webkit-appearance:none}
+.hint{font-size:12px;color:var(--text3);margin-bottom:24px;font-family:'JetBrains Mono',monospace}
+.room-wrap{display:flex;flex-direction:column;gap:12px;margin-bottom:24px}
+.room-input{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;font-family:'JetBrains Mono',monospace;font-size:18px;color:var(--text);letter-spacing:3px;text-transform:uppercase;width:100%;text-align:center}
+.room-input:focus{outline:none;border-color:var(--accent)}
+.room-divider{display:flex;align-items:center;gap:12px;font-size:12px;color:var(--text3)}
+.room-divider::before,.room-divider::after{content:'';flex:1;height:1px;background:var(--border)}
+.game-layout{display:grid;grid-template-columns:1fr 380px;gap:20px;width:100%;max-width:900px;align-items:start}
+@media(max-width:700px){.game-layout{grid-template-columns:1fr}.game-sidebar{order:-1}}
+.game-panel{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r3);overflow:hidden}
+.panel-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.panel-title{font-size:12px;font-family:'JetBrains Mono',monospace;letter-spacing:2px;text-transform:uppercase;color:var(--text2)}
+.panel-badge{font-size:11px;font-family:'JetBrains Mono',monospace;padding:3px 10px;border-radius:4px;background:var(--bg4);border:1px solid var(--border2)}
+.panel-badge.my-turn{background:rgba(232,255,71,0.13);border-color:var(--accent);color:var(--accent)}
+.panel-badge.opp-turn{background:rgba(255,107,71,0.13);border-color:var(--accent2);color:var(--accent2)}
+.history-list{padding:12px;display:flex;flex-direction:column;gap:8px;max-height:420px;overflow-y:auto;min-height:120px}
+.history-list::-webkit-scrollbar{width:4px}
+.history-list::-webkit-scrollbar-track{background:transparent}
+.history-list::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+.guess-row{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg3);border-radius:var(--r);border:1px solid var(--border)}
+.guess-row.mine{border-color:rgba(232,255,71,0.2)}
+.guess-row.theirs{border-color:rgba(71,200,255,0.2)}
+.guess-num{font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:700;letter-spacing:3px;min-width:80px}
+.guess-num .correct-d{color:var(--accent)}
+.guess-num .wrong-d{color:var(--text3)}
+.guess-meta{flex:1;display:flex;flex-direction:column;gap:3px}
+.guess-result{font-size:13px;font-weight:500}
+.guess-result.win{color:var(--green)}
+.guess-result.none{color:var(--text3)}
+.guess-who{font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--text3);letter-spacing:1px;text-transform:uppercase}
+.guess-n{font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--text3);min-width:24px;text-align:right}
+.empty-history{padding:32px;text-align:center;color:var(--text3);font-size:13px;font-family:'JetBrains Mono',monospace}
+.input-area{padding:16px}
+.guess-input-row{display:flex;gap:8px}
+.guess-input{flex:1;background:var(--bg3);border:2px solid var(--border);border-radius:var(--r);padding:12px 16px;font-family:'JetBrains Mono',monospace;font-size:24px;color:var(--text);letter-spacing:6px;text-align:center;-moz-appearance:textfield}
+.guess-input:focus{outline:none;border-color:var(--accent)}
+.guess-input::-webkit-outer-spin-button,.guess-input::-webkit-inner-spin-button{-webkit-appearance:none}
+.guess-input:disabled{opacity:.4}
+.error-msg{font-size:12px;font-family:'JetBrains Mono',monospace;color:var(--red);margin-top:6px;min-height:16px}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border)}
+.stat-cell{background:var(--bg2);padding:16px;text-align:center}
+.stat-val{font-size:28px;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--accent)}
+.stat-key{font-size:10px;color:var(--text3);letter-spacing:1.5px;text-transform:uppercase;margin-top:4px}
+.my-number-row{padding:16px 20px;display:flex;align-items:center;justify-content:space-between}
+.my-num-label{font-size:11px;color:var(--text3);letter-spacing:1px;text-transform:uppercase;font-family:'JetBrains Mono',monospace}
+.my-num-val{font-family:'JetBrains Mono',monospace;font-size:18px;letter-spacing:4px;color:var(--text2)}
+.turn-indicator{padding:12px 20px;border-top:1px solid var(--border);display:flex;align-items:center;gap:10px;font-size:13px}
+.turn-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.turn-dot.active{background:var(--accent);box-shadow:0 0 8px var(--accent)}
+.turn-dot.waiting{background:var(--text3)}
+.win-wrap{text-align:center;max-width:480px}
+.win-emoji{font-size:72px;margin-bottom:16px}
+.win-title{font-size:48px;font-weight:800;letter-spacing:-2px;margin-bottom:8px}
+.win-title.you{color:var(--accent)}
+.win-title.opp{color:var(--red)}
+.win-sub{font-size:16px;color:var(--text2);margin-bottom:8px}
+.win-reveal{font-family:'JetBrains Mono',monospace;font-size:48px;font-weight:700;letter-spacing:8px;color:var(--text);margin:24px 0}
+.win-stats{display:flex;gap:32px;justify-content:center;margin-bottom:32px}
+.win-stat{text-align:center}
+.win-stat-val{font-size:32px;font-weight:800;color:var(--accent)}
+.win-stat-key{font-size:11px;color:var(--text3);letter-spacing:1px;text-transform:uppercase}
+.win-actions{display:flex;gap:12px;justify-content:center}
+.waiting-wrap{text-align:center;max-width:400px}
+.pulse{width:64px;height:64px;border-radius:50%;border:2px solid var(--accent);margin:0 auto 24px;animation:pulse 1.5s ease-in-out infinite}
+@keyframes pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.1);opacity:.6}}
+.room-code-display{font-family:'JetBrains Mono',monospace;font-size:36px;font-weight:700;letter-spacing:8px;color:var(--accent);background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:16px 32px;margin:20px 0;cursor:pointer;transition:border-color .15s}
+.room-code-display:hover{border-color:var(--accent)}
+.copied-hint{font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace;margin-top:-12px;margin-bottom:16px;min-height:16px}
+.toast{position:fixed;top:20px;right:20px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r);padding:12px 20px;font-size:13px;font-family:'JetBrains Mono',monospace;z-index:9999;transform:translateX(120%);transition:transform .3s;pointer-events:none}
+.toast.show{transform:translateX(0)}
+.conn-wrap{text-align:center;max-width:400px}
+.spinner{width:48px;height:48px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 24px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.diff-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px}
+.diff-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:16px 12px;cursor:pointer;text-align:center;transition:all .2s}
+.diff-card:hover,.diff-card.selected{border-color:var(--accent);background:var(--bg3)}
+.diff-name{font-size:14px;font-weight:700;margin-bottom:4px}
+.diff-desc{font-size:11px;color:var(--text3);line-height:1.4}
+
+/* ── How to Play panel ── */
+.how-to{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:20px 24px;max-width:520px;margin:24px auto 0;text-align:left}
+.how-to h3{font-size:12px;font-family:'JetBrains Mono',monospace;letter-spacing:2px;text-transform:uppercase;color:var(--text3);margin-bottom:12px}
+.how-to ul{list-style:none;display:flex;flex-direction:column;gap:8px}
+.how-to li{font-size:13px;color:var(--text2);line-height:1.5;padding-left:16px;position:relative}
+.how-to li::before{content:'›';position:absolute;left:0;color:var(--accent)}
+.how-to .example{font-family:'JetBrains Mono',monospace;font-size:12px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:8px 12px;margin-top:8px;color:var(--text)}
+.how-to .ex-hit{color:var(--accent)}
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+<div id="root"></div>
+<div class="toast" id="toast"></div>
+
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script>
+const {useState,useEffect,useRef,useCallback}=React;
+
+/* ── Helpers ── */
+function randCode(){return Math.random().toString(36).slice(2,6).toUpperCase()}
+function genSecret(){return String(Math.floor(Math.random()*10000)).padStart(4,'0')}
+function validateGuess(g){return/^\d{4}$/.test(g)}
+function scoreGuess(secret,guess){
+  const hits=[];
+  for(let i=0;i<4;i++){if(guess[i]===secret[i])hits.push(i+1)}
+  return hits
+}
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2000)
+}
+
+/* ── Digit Input ── */
+function DigitInputs({value,onChange,disabled}){
+  const refs=[useRef(),useRef(),useRef(),useRef()];
+  const digits=value.split('').concat(['','','','']).slice(0,4);
+  function handleKey(i,e){
+    if(e.key>='0'&&e.key<='9'){
+      const nv=digits.map((d,j)=>j===i?e.key:d).join('').slice(0,4);
+      onChange(nv);e.preventDefault();
+      if(i<3)refs[i+1].current?.focus();
+    }else if(e.key==='Backspace'){
+      const nv=digits.map((d,j)=>j===i?'':d).join('');
+      onChange(nv);e.preventDefault();
+      if(i>0)refs[i-1].current?.focus();
+    }else if(e.key==='ArrowLeft'&&i>0){refs[i-1].current?.focus()}
+    else if(e.key==='ArrowRight'&&i<3){refs[i+1].current?.focus()}
+  }
+  return React.createElement('div',{className:'digit-input-wrap'},
+    [0,1,2,3].map(i=>
+      React.createElement('input',{
+        key:i,ref:refs[i],type:'text',inputMode:'numeric',maxLength:1,
+        className:'digit-box',value:digits[i],disabled,
+        readOnly:true,
+        onKeyDown:e=>handleKey(i,e),
+        onChange:()=>{},
+        onClick:()=>refs[i].current?.select(),
+        autoFocus:i===0
+      })
+    )
+  )
+}
+
+/* ── Guess Row ── */
+function GuessRow({entry,myNumber}){
+  const{guess,hits,who,n}=entry;
+  function renderDigits(){
+    return guess.split('').map((d,i)=>{
+      const isHit=hits.includes(i+1);
+      return React.createElement('span',{key:i,className:isHit?'correct-d':'wrong-d'},d)
+    })
+  }
+  const label=who==='me'?'You':who==='cpu'?'CPU':'Opponent';
+  const won=hits.length===4;
+  return React.createElement('div',{className:`guess-row ${who==='me'?'mine':'theirs'}`},
+    React.createElement('span',{className:'guess-n mono'},'#'+n),
+    React.createElement('span',{className:'guess-num'},renderDigits()),
+    React.createElement('div',{className:'guess-meta'},
+      React.createElement('span',{className:'guess-result '+(won?'win':hits.length===0?'none':'')},
+        won?'🎯 Perfect match!'
+        :hits.length===0?'No matches'
+        :hits.length+' match'+(hits.length>1?'es':'')+' at pos '+hits.join(', ')
+      ),
+      React.createElement('span',{className:'guess-who'},label)
+    )
+  )
+}
+
+/* ── Sidebar ── */
+function Sidebar({myTurn,myNumber,myGuesses,oppGuesses,mode}){
+  return React.createElement('div',{className:'game-panel game-sidebar'},
+    React.createElement('div',{className:'panel-header'},
+      React.createElement('span',{className:'panel-title'},'Status'),
+      React.createElement('span',{className:'panel-badge '+(myTurn?'my-turn':'opp-turn')},
+        myTurn?'Your Turn':'Waiting...'
+      )
+    ),
+    React.createElement('div',{className:'stat-grid'},
+      React.createElement('div',{className:'stat-cell'},
+        React.createElement('div',{className:'stat-val'},myGuesses),
+        React.createElement('div',{className:'stat-key'},'Your guesses')
+      ),
+      React.createElement('div',{className:'stat-cell'},
+        React.createElement('div',{className:'stat-val',style:{color:'var(--accent3)'}},oppGuesses),
+        React.createElement('div',{className:'stat-key'},mode==='cpu'?'CPU guesses':'Opp guesses')
+      )
+    ),
+    React.createElement('div',{className:'my-number-row'},
+      React.createElement('span',{className:'my-num-label'},'Your secret'),
+      React.createElement('span',{className:'my-num-val mono'},myNumber)
+    ),
+    React.createElement('div',{className:'turn-indicator'},
+      React.createElement('div',{className:'turn-dot '+(myTurn?'active':'waiting')}),
+      React.createElement('span',{style:{fontSize:'13px',color:'var(--text2)'}},
+        myTurn?'Make your guess now':'Waiting for opponent'
+      )
+    )
+  )
+}
+
+/* ── CPU AI ── */
+function makeCPUGuess(history,difficulty){
+  if(difficulty==='easy'){return genSecret()}
+  let pool=Array.from({length:10000},(_,i)=>String(i).padStart(4,'0'));
+  for(const h of history){
+    if(h.who==='cpu')continue;
+    pool=pool.filter(c=>{
+      const hits=scoreGuess(h.guess,c);
+      return JSON.stringify(hits)===JSON.stringify(h.hits)
+    })
+  }
+  if(pool.length===0)return genSecret();
+  if(difficulty==='medium'){
+    return pool[Math.floor(Math.random()*Math.min(pool.length,20))]
+  }
+  return pool[0];
+}
+
+/* ── HowToPlay ── */
+function HowToPlay(){
+  return React.createElement('div',{className:'how-to'},
+    React.createElement('h3',null,'How to play'),
+    React.createElement('ul',null,
+      React.createElement('li',null,'Each player picks a secret 4-digit number (0000–9999)'),
+      React.createElement('li',null,'Take turns guessing the opponent\'s number'),
+      React.createElement('li',null,'After each guess you\'ll see which digit positions matched'),
+      React.createElement('li',null,
+        'Example — target is ',
+        React.createElement('span',{style:{fontFamily:'monospace',color:'var(--accent)'}},'1127'),
+        ', guess is ',
+        React.createElement('span',{style:{fontFamily:'monospace',color:'var(--text)'}},'4123'),
+        ':',
+        React.createElement('div',{className:'example'},
+          React.createElement('span',{className:'ex-hit'},'_'),
+          React.createElement('span',{},'_'),
+          React.createElement('span',{className:'ex-hit'},'2'),
+          React.createElement('span',{},'_'),
+          ' → 1 match at pos 3'
+        )
+      ),
+      React.createElement('li',null,'First to guess all 4 digits correctly wins!')
+    )
+  )
+}
+
+/* ── Main App ── */
+function App(){
+  const [screen,setScreen]=useState('splash');
+  const [mode,setMode]=useState(null);
+  const [difficulty,setDifficulty]=useState('medium');
+  const [myNumber,setMyNumber]=useState('');
+  const [mySetup,setMySetup]=useState('');
+  const [oppNumber,setOppNumber]=useState('');
+  const [guessInput,setGuessInput]=useState('');
+  const [history,setHistory]=useState([]);
+  const [myTurn,setMyTurn]=useState(true);
+  const [winner,setWinner]=useState(null);
+  const [roomCode,setRoomCode]=useState('');
+  const [isHost,setIsHost]=useState(false);
+  const [oppReady,setOppReady]=useState(false);
+  const [guessError,setGuessError]=useState('');
+  const [copiedHint,setCopiedHint]=useState('');
+  const [cpuNumber,setCpuNumber]=useState('');
+  const [guessCounter,setGuessCounter]=useState({me:0,opp:0});
+  const channelRef=useRef(null);
+  const guessInputRef=useRef(null);
+
+  useEffect(()=>{
+    if(mode!=='pvp'||!roomCode)return;
+    const ch=new BroadcastChannel('digitduel_'+roomCode);
+    channelRef.current=ch;
+    ch.onmessage=e=>{
+      const{type,payload}=e.data;
+      if(type==='JOIN'){
+        if(isHost){
+          ch.postMessage({type:'HOST_ACK',payload:{hostReady:!!oppNumber}});
+          setOppReady(true);
+        }
+      }else if(type==='HOST_ACK'){
+        setOppReady(true);
+      }else if(type==='READY'){
+        setOppReady(true);
+        if(isHost)setMyTurn(true);
+      }else if(type==='GUESS'){
+        const{guess,n}=payload;
+        const hits=scoreGuess(myNumber||'0000',guess);
+        ch.postMessage({type:'RESULT',payload:{guess,hits,n}});
+        setHistory(h=>[...h,{who:'opp',guess,hits,n}]);
+        setGuessCounter(c=>({...c,opp:c.opp+1}));
+        if(hits.length===4){setWinner('opp');setScreen('win');return}
+        setMyTurn(true);
+      }else if(type==='RESULT'){
+        const{guess,hits,n}=payload;
+        setHistory(h=>[...h,{who:'me',guess,hits,n}]);
+        setGuessCounter(c=>({...c,me:c.me+1}));
+        if(hits.length===4){setWinner('me');setScreen('win');return}
+        setMyTurn(false);
+      }
+    };
+    return()=>{ch.close();channelRef.current=null}
+  },[mode,roomCode,isHost,myNumber]);
+
+  function startSolo(){
+    const secret=genSecret();
+    setCpuNumber(secret);setOppNumber(secret);
+    setHistory([]);setGuessCounter({me:0,opp:0});
+    setWinner(null);setMyTurn(true);setGuessInput('');setGuessError('');
+    setScreen('game');
+  }
+
+  function createRoom(){
+    const code=randCode();
+    setRoomCode(code);setIsHost(true);setOppReady(false);
+    setScreen('setup_number');
+  }
+
+  function joinRoom(code){
+    if(!code||code.length<4){showToast('Enter a room code');return}
+    setRoomCode(code.toUpperCase());setIsHost(false);setOppReady(false);
+    setScreen('setup_number');
+  }
+
+  function submitNumber(){
+    if(!validateGuess(mySetup)){setGuessError('Enter exactly 4 digits');return}
+    setMyNumber(mySetup);setGuessError('');
+    if(mode==='cpu'){startSolo();return}
+    if(isHost){setScreen('waiting')}
+    else{
+      const ch=channelRef.current||new BroadcastChannel('digitduel_'+roomCode);
+      channelRef.current=ch;
+      ch.postMessage({type:'JOIN'});
+      ch.postMessage({type:'READY'});
+      setScreen('waiting_guest');
+    }
+  }
+
+  function hostStartGame(){
+    channelRef.current?.postMessage({type:'READY'});
+    setMyTurn(true);setHistory([]);setGuessCounter({me:0,opp:0});setWinner(null);
+    setScreen('game');
+  }
+
+  function guestGameReady(){
+    setHistory([]);setGuessCounter({me:0,opp:0});setWinner(null);
+    setMyTurn(false);setScreen('game');
+  }
+
+  function submitGuess(){
+    const g=guessInput.trim();
+    if(!validateGuess(g)){setGuessError('Enter exactly 4 digits (0-9)');return}
+    if(!myTurn){setGuessError('Not your turn!');return}
+    setGuessError('');
+    if(mode==='cpu'){
+      const n=guessCounter.me+1;
+      const hits=scoreGuess(oppNumber,g);
+      const newHistory=[...history,{who:'me',guess:g,hits,n}];
+      setHistory(newHistory);setGuessCounter(c=>({...c,me:n}));setGuessInput('');
+      if(hits.length===4){setWinner('me');setScreen('win');return}
+      setMyTurn(false);
+      const cpuDelay=800+Math.random()*700;
+      setTimeout(()=>{
+        const cpuG=makeCPUGuess(newHistory,difficulty);
+        const cpuHits=scoreGuess(myNumber,cpuG);
+        const n2=guessCounter.opp+1;
+        setHistory(h=>[...h,{who:'cpu',guess:cpuG,hits:cpuHits,n:n2}]);
+        setGuessCounter(c=>({...c,opp:c.opp+1}));
+        if(cpuHits.length===4){setWinner('cpu');setScreen('win');return}
+        setMyTurn(true);
+        setTimeout(()=>guessInputRef.current?.focus(),100);
+      },cpuDelay);
+    }else{
+      const n=guessCounter.me+1;
+      channelRef.current?.postMessage({type:'GUESS',payload:{guess:g,n}});
+      setGuessInput('');
+    }
+  }
+
+  function reset(){
+    setScreen('splash');setMode(null);setMyNumber('');setMySetup('');
+    setOppNumber('');setGuessInput('');setHistory([]);setMyTurn(true);
+    setWinner(null);setRoomCode('');setIsHost(false);setOppReady(false);
+    setGuessError('');setCpuNumber('');setGuessCounter({me:0,opp:0});
+    channelRef.current?.close();channelRef.current=null;
+  }
+
+  function copyRoom(){
+    navigator.clipboard?.writeText(roomCode);
+    setCopiedHint('Copied!');setTimeout(()=>setCopiedHint(''),2000);
+  }
+
+  /* ── SCREENS ── */
+
+  if(screen==='splash') return React.createElement('div',{className:'screen'},
+    React.createElement('div',{className:'content',style:{display:'flex',flexDirection:'column',alignItems:'center',textAlign:'center'}},
+      React.createElement('div',{className:'splash-title'},'DIGIT',React.createElement('span',{className:'accent'},'DUEL')),
+      React.createElement('div',{className:'splash-sub'},'4-digit position-match guessing game'),
+      React.createElement('div',{className:'mode-grid'},
+        React.createElement('div',{className:'mode-card',onClick:()=>{setMode('pvp');setScreen('pvp_lobby')}},
+          React.createElement('div',{className:'mode-icon'},'⚔️'),
+          React.createElement('div',{className:'mode-name'},'Player vs Player'),
+          React.createElement('div',{className:'mode-desc'},'Challenge a friend in real-time. Share a room code to connect.'),
+          React.createElement('div',{className:'mode-badge'},'Multiplayer')
+        ),
+        React.createElement('div',{className:'mode-card',onClick:()=>{setMode('cpu');setScreen('cpu_setup')}},
+          React.createElement('div',{className:'mode-icon'},'🤖'),
+          React.createElement('div',{className:'mode-name'},'Player vs CPU'),
+          React.createElement('div',{className:'mode-desc'},'Test your strategy against our adaptive AI opponent.'),
+          React.createElement('div',{className:'mode-badge'},'Solo')
+        )
+      ),
+      React.createElement(HowToPlay)
+    )
+  );
+
+  if(screen==='cpu_setup') return React.createElement('div',{className:'screen'},
+    React.createElement('div',{className:'setup-wrap'},
+      React.createElement('div',{className:'setup-step'},'Step 1 of 2'),
+      React.createElement('div',{className:'setup-title'},'Choose difficulty'),
+      React.createElement('div',{style:{height:'20px'}}),
+      React.createElement('div',{className:'diff-grid'},
+        ['easy','medium','hard'].map(d=>
+          React.createElement('div',{key:d,className:'diff-card '+(difficulty===d?'selected':''),onClick:()=>setDifficulty(d)},
+            React.createElement('div',{className:'diff-name'},d.charAt(0).toUpperCase()+d.slice(1)),
+            React.createElement('div',{className:'diff-desc'},
+              d==='easy'?'Random guesses':d==='medium'?'Smart elimination':'Optimal AI'
+            )
+          )
+        )
+      ),
+      React.createElement('div',{className:'setup-step'},'Step 2 of 2'),
+      React.createElement('div',{className:'setup-title'},'Your secret number'),
+      React.createElement('div',{style:{height:'12px'}}),
+      React.createElement('div',{className:'field-label'},'Enter 4 digits — keep it secret!'),
+      React.createElement(DigitInputs,{value:mySetup,onChange:v=>{setMySetup(v);setGuessError('')}}),
+      React.createElement('div',{className:'hint'},'The CPU will try to guess this.'),
+      guessError&&React.createElement('div',{style:{color:'var(--red)',fontSize:'12px',fontFamily:'monospace',marginBottom:'12px'}},guessError),
+      React.createElement('div',{style:{display:'flex',gap:'12px'}},
+        React.createElement('button',{className:'btn outline',onClick:reset},'← Back'),
+        React.createElement('button',{className:'btn',disabled:mySetup.length<4,onClick:submitNumber},'Start Game →')
+      )
+    )
+  );
+
+  if(screen==='pvp_lobby') return React.createElement('div',{className:'screen'},
+    React.createElement('div',{className:'setup-wrap'},
+      React.createElement('div',{className:'setup-step'},'Multiplayer'),
+      React.createElement('div',{className:'setup-title'},'Join or Create Room'),
+      React.createElement('div',{style:{height:'20px'}}),
+      React.createElement('button',{className:'btn',style:{width:'100%',justifyContent:'center',marginBottom:'20px'},onClick:createRoom},'+ Create New Room'),
+      React.createElement('div',{className:'room-divider'},'or join existing'),
+      React.createElement('div',{style:{height:'16px'}}),
+      React.createElement(JoinRoomPanel,{onJoin:joinRoom}),
+      React.createElement('div',{style:{height:'20px'}}),
+      React.createElement('button',{className:'btn outline',onClick:reset},'← Back')
+    )
+  );
+
+  if(screen==='setup_number') return React.createElement('div',{className:'screen'},
+    React.createElement('div',{className:'setup-wrap'},
+      React.createElement('div',{className:'setup-step'},'Room: '+roomCode),
+      React.createElement('div',{className:'setup-title'},'Your secret number'),
+      React.createElement('div',{style:{height:'12px'}}),
+      React.createElement('div',{className:'field-label'},'Enter 4 digits — keep it secret!'),
+      React.createElement(DigitInputs,{value:mySetup,onChange:v=>{setMySetup(v);setGuessError('')}}),
+      React.createElement('div',{className:'hint'},'Your opponent will try to guess this.'),
+      guessError&&React.createElement('div',{style:{color:'var(--red)',fontSize:'12px',fontFamily:'monospace',marginBottom:'12px'}},guessError),
+      React.createElement('div',{style:{display:'flex',gap:'12px'}},
+        React.createElement('button',{className:'btn outline',onClick:reset},'← Back'),
+        React.createElement('button',{className:'btn',disabled:mySetup.length<4,onClick:submitNumber},'Lock In →')
+      )
+    )
+  );
+
+  if(screen==='waiting') return React.createElement('div',{className:'screen'},
+    React.createElement('div',{className:'waiting-wrap'},
+      React.createElement('div',{className:'pulse'}),
+      React.createElement('div',{className:'setup-title',style:{marginBottom:'8px'}},'Waiting for opponent'),
+      React.createElement('div',{style:{fontSize:'13px',color:'var(--text2)',marginBottom:'20px'}},'Share your room code:'),
+      React.createElement('div',{className:'room-code-display',onClick:copyRoom},roomCode),
+      React.createElement('div',{className:'copied-hint'},copiedHint||'Click to copy'),
+      oppReady
+        ?React.createElement('button',{className:'btn',onClick:hostStartGame},'Start Game! →')
+        :React.createElement('div',{style:{fontSize:'13px',color:'var(--text3)',fontFamily:'monospace'}},'Waiting for opponent to join...'),
+      React.createElement('div',{style:{height:'16px'}}),
+      React.createElement('button',{className:'btn outline sm',onClick:reset},'Cancel')
+    )
+  );
+
+  if(screen==='waiting_guest') return React.createElement('div',{className:'screen'},
+    React.createElement('div',{className:'waiting-wrap'},
+      React.createElement('div',{className:'spinner'}),
+      React.createElement('div',{className:'setup-title',style:{marginBottom:'8px'}},'Connected!'),
+      React.createElement('div',{style:{fontSize:'13px',color:'var(--text2)',marginBottom:'20px'}},'Waiting for host to start...'),
+      React.createElement('div',{className:'room-code-display',style:{cursor:'default'}},roomCode),
+      React.createElement('button',{className:'btn sm',onClick:guestGameReady,style:{marginTop:'16px'}},'Ready'),
+      React.createElement('div',{style:{height:'12px'}}),
+      React.createElement('button',{className:'btn outline sm',onClick:reset},'Leave')
+    )
+  );
+
+  if(screen==='game'){
+    const myGuesses=guessCounter.me;
+    const oppGuesses=guessCounter.opp;
+    return React.createElement('div',{className:'screen',style:{justifyContent:'flex-start',paddingTop:'24px'}},
+      React.createElement('div',{className:'content'},
+        React.createElement('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'16px'}},
+          React.createElement('div',{style:{display:'flex',alignItems:'center',gap:'12px'}},
+            React.createElement('span',{style:{fontWeight:'800',fontSize:'20px',letterSpacing:'-1px'}},
+              'DIGIT',React.createElement('span',{style:{color:'var(--accent)'}},'DUEL')
+            ),
+            React.createElement('span',{style:{fontSize:'11px',fontFamily:'monospace',color:'var(--text3)',background:'var(--bg3)',border:'1px solid var(--border)',padding:'3px 10px',borderRadius:'4px',letterSpacing:'1px'}},
+              mode==='cpu'?'CPU · '+difficulty.toUpperCase():'PvP · '+roomCode
+            )
+          ),
+          React.createElement('button',{className:'btn outline sm',onClick:reset},'Quit')
+        ),
+        React.createElement('div',{className:'game-layout'},
+          React.createElement('div',{style:{display:'flex',flexDirection:'column',gap:'12px'}},
+            React.createElement('div',{className:'game-panel'},
+              React.createElement('div',{className:'panel-header'},
+                React.createElement('span',{className:'panel-title'},'Guess History'),
+                React.createElement('span',{style:{fontSize:'11px',fontFamily:'monospace',color:'var(--text3)'}},
+                  history.length+' guess'+(history.length!==1?'es':'')
+                )
+              ),
+              history.length===0
+                ?React.createElement('div',{className:'empty-history'},'No guesses yet...')
+                :React.createElement('div',{className:'history-list'},
+                    [...history].reverse().map((e,i)=>React.createElement(GuessRow,{key:i,entry:e,myNumber}))
+                  )
+            ),
+            myTurn&&React.createElement('div',{className:'game-panel'},
+              React.createElement('div',{className:'panel-header'},
+                React.createElement('span',{className:'panel-title'},'Your Guess')
+              ),
+              React.createElement('div',{className:'input-area'},
+                React.createElement('div',{className:'guess-input-row'},
+                  React.createElement('input',{
+                    ref:guessInputRef,className:'guess-input',type:'text',
+                    inputMode:'numeric',maxLength:4,placeholder:'0000',
+                    value:guessInput,
+                    onChange:e=>{const v=e.target.value.replace(/\D/g,'').slice(0,4);setGuessInput(v);setGuessError('')},
+                    onKeyDown:e=>{if(e.key==='Enter')submitGuess()},
+                    autoFocus:true,disabled:!myTurn
+                  }),
+                  React.createElement('button',{className:'btn',onClick:submitGuess,disabled:guessInput.length<4},'Guess →')
+                ),
+                React.createElement('div',{className:'error-msg'},guessError)
+              )
+            ),
+            !myTurn&&React.createElement('div',{className:'game-panel'},
+              React.createElement('div',{style:{padding:'24px',textAlign:'center',color:'var(--text3)',fontFamily:'monospace',fontSize:'13px',letterSpacing:'1px'}},
+                mode==='cpu'?'CPU is thinking...':'Opponent is guessing...'
+              )
+            )
+          ),
+          React.createElement(Sidebar,{myTurn,myNumber,myGuesses,oppGuesses,mode})
+        )
+      )
+    )
+  }
+
+  if(screen==='win'){
+    const iWon=winner==='me';
+    const secret=mode==='cpu'?cpuNumber:oppNumber;
+    return React.createElement('div',{className:'screen'},
+      React.createElement('div',{className:'win-wrap'},
+        React.createElement('div',{className:'win-emoji'},iWon?'🏆':'💀'),
+        React.createElement('div',{className:'win-title '+(iWon?'you':'opp')},
+          iWon?'YOU WIN!':mode==='cpu'?'CPU WINS':'OPPONENT WINS'
+        ),
+        React.createElement('div',{className:'win-sub'},
+          iWon?'You cracked it in '+guessCounter.me+' guess'+(guessCounter.me!==1?'es':'')+'!'
+          :'Better luck next time!'
+        ),
+        React.createElement('div',{},
+          React.createElement('div',{style:{fontSize:'12px',color:'var(--text3)',fontFamily:'monospace',letterSpacing:'1px',marginBottom:'8px',textAlign:'center'}},
+            iWon?'SECRET NUMBER':'THE ANSWER WAS'
+          ),
+          React.createElement('div',{className:'win-reveal'},iWon?secret:myNumber)
+        ),
+        React.createElement('div',{className:'win-stats'},
+          React.createElement('div',{className:'win-stat'},
+            React.createElement('div',{className:'win-stat-val'},guessCounter.me),
+            React.createElement('div',{className:'win-stat-key'},'Your guesses')
+          ),
+          React.createElement('div',{className:'win-stat'},
+            React.createElement('div',{className:'win-stat-val',style:{color:'var(--accent3)'}},guessCounter.opp),
+            React.createElement('div',{className:'win-stat-key'},mode==='cpu'?'CPU guesses':'Opp guesses')
+          )
+        ),
+        React.createElement('div',{className:'win-actions'},
+          React.createElement('button',{className:'btn',onClick:()=>{
+            if(mode==='cpu'){setScreen('cpu_setup');setMySetup('');setGuessError('')}
+            else{setScreen('pvp_lobby');setMySetup('')}
+          }},'Play Again'),
+          React.createElement('button',{className:'btn outline',onClick:reset},'Main Menu')
+        )
+      )
+    )
+  }
+  return null;
+}
+
+function JoinRoomPanel({onJoin}){
+  const [code,setCode]=useState('');
+  return React.createElement('div',{className:'room-wrap'},
+    React.createElement('input',{
+      className:'room-input',type:'text',maxLength:4,
+      placeholder:'ROOM CODE',value:code,
+      onChange:e=>setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g,'')),
+      onKeyDown:e=>{if(e.key==='Enter')onJoin(code)}
+    }),
+    React.createElement('button',{
+      className:'btn',
+      style:{width:'100%',justifyContent:'center'},
+      disabled:code.length<4,
+      onClick:()=>onJoin(code)
+    },'Join Room →')
+  )
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));
+</script>
+</body>
+</html>
