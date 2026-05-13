@@ -167,27 +167,45 @@ function showToast(msg){
 function DigitInputs({value,onChange,disabled}){
   const refs=[useRef(),useRef(),useRef(),useRef()];
   const digits=value.split('').concat(['','','','']).slice(0,4);
-  function handleKey(i,e){
-  const digit = e.key || e.data;
-  if(digit>='0'&&digit<='9'){
+  function setDigitAt(i,digit){
     const nv=digits.map((d,j)=>j===i?digit:d).join('').slice(0,4);
-    onChange(nv); if(e.preventDefault) e.preventDefault();
-    if(i<3) refs[i+1].current?.focus();
-  }else if(e.key==='Backspace'||digit==='Backspace'){
+    onChange(nv);
+  }
+  function clearDigitAt(i){
     const nv=digits.map((d,j)=>j===i?'':d).join('');
-    onChange(nv); if(e.preventDefault) e.preventDefault();
-    if(i>0) refs[i-1].current?.focus();
-  }else if(e.key==='ArrowLeft'&&i>0){refs[i-1].current?.focus()}
-  else if(e.key==='ArrowRight'&&i<3){refs[i+1].current?.focus()}
-}
+    onChange(nv);
+  }
+  function handleKey(i,e){
+    if(e.key>='0'&&e.key<='9'){
+      setDigitAt(i,e.key);e.preventDefault();
+      if(i<3)refs[i+1].current?.focus();
+    }else if(e.key==='Backspace'){
+      clearDigitAt(i);e.preventDefault();
+      if(i>0)refs[i-1].current?.focus();
+    }else if(e.key==='ArrowLeft'&&i>0){refs[i-1].current?.focus()}
+    else if(e.key==='ArrowRight'&&i<3){refs[i+1].current?.focus()}
+  }
+  function handleInput(i,e){
+    const v=e.target.value.replace(/\D/g,'');
+    if(!v){clearDigitAt(i);return}
+    const chars=v.slice(0,4).split('');
+    if(chars.length===1){
+      setDigitAt(i,chars[0]);
+      if(i<3)refs[i+1].current?.focus();
+      return;
+    }
+    const next=digits.slice();
+    for(let k=0;k<chars.length&&i+k<4;k++)next[i+k]=chars[k];
+    onChange(next.join('').slice(0,4));
+    refs[Math.min(i+chars.length,3)].current?.focus();
+  }
   return React.createElement('div',{className:'digit-input-wrap'},
     [0,1,2,3].map(i=>
       React.createElement('input',{
         key:i,ref:refs[i],type:'text',inputMode:'numeric',maxLength:1,
         className:'digit-box',value:digits[i],disabled,
-        
         onKeyDown:e=>handleKey(i,e),
-        onChange:e=>{ const v=e.target.value.replace(/\D/g,''); if(v) handleKey(i,{key:v,preventDefault:()=>{}}); },
+        onChange:e=>handleInput(i,e),
         onClick:()=>refs[i].current?.select(),
         autoFocus:i===0
       })
